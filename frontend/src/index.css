@@ -175,7 +175,7 @@ a:hover { text-decoration: underline; }
 }
 .dash-tab:hover { color: var(--text); }
 .dash-tab--active { color: var(--accent); border-bottom-color: var(--accent); }
-.dash-content { padding: 24px; flex: 1; }
+.dash-content { padding: 24px; flex: 1; min-height: 0; }
 .panel-loading {
   display: flex;
   align-items: center;

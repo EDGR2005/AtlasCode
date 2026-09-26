@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import {
   ReactFlow,
   Background,
@@ -6,6 +6,8 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
+  useReactFlow,
+  ReactFlowProvider,
   type Node,
   type Edge,
   type NodeProps,
@@ -92,6 +94,16 @@ export default function DatabasePanel({ schema }: Props) {
     );
   }
 
+  return (
+    <ReactFlowProvider>
+      <DatabaseGraph schema={schema} />
+    </ReactFlowProvider>
+  );
+}
+
+function DatabaseGraph({ schema }: Props) {
+  const { fitView } = useReactFlow();
+
   const initialNodes = useMemo<Node[]>(() => {
     let yOffset = 0;
     let colHeights: number[] = Array(COLS).fill(0);
@@ -136,6 +148,10 @@ export default function DatabasePanel({ schema }: Props) {
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
+  const onInit = useCallback(() => {
+    setTimeout(() => fitView({ padding: 0.15 }), 50);
+  }, [fitView]);
+
   return (
     <div className="db-panel">
       <div className="db-stats">
@@ -149,7 +165,7 @@ export default function DatabasePanel({ schema }: Props) {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
-          fitView
+          onInit={onInit}
           colorMode="dark"
           minZoom={0.2}
           maxZoom={2}
