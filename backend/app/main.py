@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.projects import router as projects_router
+
 app = FastAPI(title="CodeAtlas API")
 
 app.add_middleware(
@@ -11,8 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# from app.api import projects  # wired in Sub-Task 5
-# app.include_router(projects.router)
+app.include_router(projects_router)
 
 
 @app.get("/health")
