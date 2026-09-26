@@ -10,13 +10,17 @@ from fastapi.testclient import TestClient
 
 from app.dependencies import get_storage
 from app.knowledge.models import (
+    ColumnInfo,
     Component,
+    DatabaseSchema,
+    DbRelationship,
     Dependency,
     FileEntry,
     ProjectKnowledge,
     ProjectMetadata,
     Relationship,
     RepositoryInfo,
+    TableSchema,
     TechnologyDetection,
 )
 from app.knowledge.storage import ProjectStorage
@@ -199,3 +203,75 @@ def test_architecture_with_knowledge(
     assert data["components"][0]["name"] == "main"
     assert len(data["relationships"]) == 1
     assert data["relationships"][0]["type"] == "imports"
+
+
+def test_database_not_found(client: TestClient) -> None:
+    resp = client.get("/projects/unknown-id/database")
+    assert resp.status_code == 404
+
+
+def test_database_analyzing(client: TestClient, storage: ProjectStorage) -> None:
+    """Before knowledge.json exists the database endpoint returns analyzing body."""
+    meta = storage.create_project(REPO_URL)
+    resp = client.get(f"/projects/{meta.project_id}/database")
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "analyzing"}
+
+
+def test_database_empty_schema(client: TestClient, storage: ProjectStorage) -> None:
+    """A project with no DB tables returns detected=False, not an error."""
+    meta = storage.create_project(REPO_URL)
+    knowledge = _make_knowledge(meta)
+    storage.save_knowledge(meta.project_id, knowledge)
+
+    resp = client.get(f"/projects/{meta.project_id}/database")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["detected"] is False
+    assert data["tables"] == []
+    assert data["relationships"] == []
+
+
+def test_database_with_schema(client: TestClient, storage: ProjectStorage) -> None:
+    """A project with DB tables returns them correctly."""
+    meta = storage.create_project(REPO_URL)
+    knowledge = _make_knowledge(meta)
+    knowledge.database = DatabaseSchema(
+        detected=True,
+        tables=[
+            TableSchema(
+                name="users",
+                source="schema.sql",
+                source_type="sql",
+                confidence=1.0,
+                columns=[
+                    ColumnInfo(name="id", data_type="INTEGER", primary_key=True, nullable=False, source="schema.sql"),
+                    ColumnInfo(name="email", data_type="VARCHAR", unique=True, source="schema.sql"),
+                ],
+            )
+        ],
+        relationships=[
+            DbRelationship(
+                from_table="posts",
+                from_column="author_id",
+                to_table="users",
+                to_column="id",
+                relationship_type="one_to_many",
+                source="schema.sql",
+                inferred=False,
+            )
+        ],
+    )
+    storage.save_knowledge(meta.project_id, knowledge)
+
+    resp = client.get(f"/projects/{meta.project_id}/database")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["detected"] is True
+    assert len(data["tables"]) == 1
+    assert data["tables"][0]["name"] == "users"
+    cols = data["tables"][0]["columns"]
+    pk_cols = [c for c in cols if c["primary_key"]]
+    assert len(pk_cols) == 1
+    assert len(data["relationships"]) == 1
+    assert data["relationships"][0]["from_table"] == "posts"

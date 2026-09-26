@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app.analyzer.pipeline import run_pipeline
 from app.dependencies import get_storage
 from app.knowledge.models import (
+    DatabaseSchema,
     Dependency,
     FileEntry,
     TechnologyDetection,
@@ -185,3 +186,23 @@ def get_architecture(
         return {"status": "analyzing"}
 
     return {"components": knowledge.components, "relationships": knowledge.relationships}
+
+
+@router.get("/{project_id}/database")
+def get_database(
+    project_id: str,
+    storage: ProjectStorage = Depends(get_storage),
+):
+    """
+    Return the detected database schema for a project.
+    Returns database.detected=False (not an error) when no schema was found.
+    """
+    meta = storage.get_project(project_id)
+    if meta is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    knowledge = storage.load_knowledge(project_id)
+    if knowledge is None:
+        return {"status": "analyzing"}
+
+    return knowledge.database

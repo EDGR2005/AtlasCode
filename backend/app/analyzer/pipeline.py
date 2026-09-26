@@ -5,7 +5,7 @@ from pathlib import Path
 
 from app.knowledge.models import ProjectKnowledge, RepositoryInfo
 from app.knowledge.storage import ProjectStorage
-from app.analyzer import repository, files, technologies, dependencies, relationships
+from app.analyzer import repository, files, technologies, dependencies, relationships, database
 
 
 def run_pipeline(
@@ -49,7 +49,10 @@ def run_pipeline(
         # Step 6: detect relationships
         rels = relationships.detect_relationships(clone_path, file_entries)
 
-        # Step 7: build and save knowledge
+        # Step 7: detect database schema
+        db_schema = database.detect_database_schema(clone_path, file_entries)
+
+        # Step 8: build and save knowledge
         repo_info = RepositoryInfo(
             url=repo_url,
             commit_sha=commit_sha,
@@ -62,10 +65,11 @@ def run_pipeline(
             dependencies=deps,
             files=file_entries,
             relationships=rels,
+            database=db_schema,
         )
         storage.save_knowledge(project_id, knowledge)
 
-        # Step 8: mark as ready
+        # Step 9: mark as ready
         metadata.status = "ready"
         storage.update_project(metadata)
 

@@ -8,14 +8,16 @@ import type {
   FileEntry,
   Component,
   Relationship,
+  DatabaseSchema,
 } from '../types/knowledge';
 import OverviewPanel from '../components/OverviewPanel';
 import TechnologiesPanel from '../components/TechnologiesPanel';
 import DependenciesPanel from '../components/DependenciesPanel';
 import RepositoryPanel from '../components/RepositoryPanel';
 import ArchitectureGraph from '../components/ArchitectureGraph';
+import DatabasePanel from '../components/DatabasePanel';
 
-type Tab = 'overview' | 'technologies' | 'dependencies' | 'architecture' | 'repository';
+type Tab = 'overview' | 'technologies' | 'dependencies' | 'architecture' | 'repository' | 'database';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -23,6 +25,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'dependencies', label: 'Dependencies' },
   { id: 'architecture', label: 'Architecture' },
   { id: 'repository', label: 'Repository' },
+  { id: 'database', label: 'Database' },
 ];
 
 export default function DashboardPage() {
@@ -37,6 +40,7 @@ export default function DashboardPage() {
   const [files, setFiles] = useState<FileEntry[] | null>(null);
   const [components, setComponents] = useState<Component[] | null>(null);
   const [relationships, setRelationships] = useState<Relationship[] | null>(null);
+  const [dbSchema, setDbSchema] = useState<DatabaseSchema | null>(null);
 
   // Track which tabs have been fetched
   const fetched = useRef<Set<Tab>>(new Set());
@@ -98,6 +102,11 @@ export default function DashboardPage() {
             setRelationships(d.relationships ?? []);
           })
           .catch(() => { setComponents([]); setRelationships([]); });
+        break;
+      case 'database':
+        api.getDatabase(projectId)
+          .then((d: DatabaseSchema) => setDbSchema(d))
+          .catch(() => setDbSchema({ tables: [], relationships: [], detected: false }));
         break;
       case 'overview':
         // Also pre-fetch technologies for the overview chips
@@ -179,6 +188,11 @@ export default function DashboardPage() {
               files === null
                 ? <div className="panel-loading"><span className="spinner" /> Loading…</div>
                 : <RepositoryPanel files={files} />
+            )}
+            {activeTab === 'database' && (
+              dbSchema === null
+                ? <div className="panel-loading"><span className="spinner" /> Loading…</div>
+                : <DatabasePanel schema={dbSchema} />
             )}
           </main>
         </>

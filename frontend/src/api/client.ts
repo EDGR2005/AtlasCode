@@ -25,4 +25,7 @@ export const api = {
 
   getArchitecture: (projectId: string) =>
     fetch(`${API}/projects/${projectId}/architecture`).then(r => r.json()),
+
+  getDatabase: (projectId: string) =>
+    fetch(`${API}/projects/${projectId}/database`).then(r => r.json()),
 };
