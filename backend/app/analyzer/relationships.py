@@ -24,19 +24,28 @@ def _module_to_file(module: str, repo_path: Path) -> str | None:
     """
     Convert a Python dotted module path to a file path relative to repo root.
     Checks both <module_path>.py and <module_path>/__init__.py against the repo.
+    repo_path must already be resolved by the caller.
     """
     rel = module.replace(".", "/")
+    # Build candidate paths directly from the relative segment — never call
+    # relative_to() on a candidate that was just constructed from repo_path,
+    # because that produces a relative path (e.g. "core.py") which, when
+    # joined again, works fine; but if repo_path were unresolved it could
+    # silently produce an absolute path that then fails relative_to() later.
     candidates = [
         repo_path / (rel + ".py"),
         repo_path / rel / "__init__.py",
+        repo_path / "src" / (rel + ".py"),
+        repo_path / "src" / rel / "__init__.py",
     ]
-    # Also try resolving from src/ subdirectory
-    for candidate in list(candidates):
-        candidates.append(repo_path / "src" / candidate.relative_to(repo_path))
     for candidate in candidates:
         if candidate.exists():
             try:
-                return str(candidate.relative_to(repo_path))
+                resolved = candidate.resolve()
+                rel_result = resolved.relative_to(repo_path)
+                rel_str = str(rel_result)
+                if not rel_str.startswith("/"):
+                    return rel_str
             except ValueError:
                 pass
     return None
@@ -48,6 +57,7 @@ def _resolve_ts_import(
     """
     Resolve a relative TypeScript/JS import path to a file path relative to repo root.
     Only resolves relative paths (starting with ./ or ../).
+    repo_path must already be resolved by the caller.
     """
     if not import_path.startswith("./") and not import_path.startswith("../"):
         return None
@@ -55,20 +65,30 @@ def _resolve_ts_import(
     source_dir = (repo_path / source_file).parent
     target = (source_dir / import_path).resolve()
 
+    # Guard: resolved target must be inside the repo root.
+    try:
+        target.relative_to(repo_path)
+    except ValueError:
+        return None
+
     # Try with common extensions
     extensions = ["", ".ts", ".tsx", ".js", ".jsx"]
     for ext in extensions:
         candidate = Path(str(target) + ext)
         if candidate.exists():
             try:
-                return str(candidate.relative_to(repo_path))
+                rel_str = str(candidate.resolve().relative_to(repo_path))
+                if not rel_str.startswith("/"):
+                    return rel_str
             except ValueError:
                 pass
         # Also try index file
         index = target / ("index" + ext) if ext else None
         if index and index.exists():
             try:
-                return str(index.relative_to(repo_path))
+                rel_str = str(index.resolve().relative_to(repo_path))
+                if not rel_str.startswith("/"):
+                    return rel_str
             except ValueError:
                 pass
     return None
@@ -77,6 +97,7 @@ def _resolve_ts_import(
 def _detect_python_relationships(
     repo_path: Path, file_entries: list[FileEntry]
 ) -> list[Relationship]:
+    repo_path = repo_path.resolve()
     results: list[Relationship] = []
     py_files = [e for e in file_entries if e.extension == ".py" and not _is_skipped(e.path)]
 
@@ -110,6 +131,7 @@ def _detect_python_relationships(
 def _detect_ts_relationships(
     repo_path: Path, file_entries: list[FileEntry]
 ) -> list[Relationship]:
+    repo_path = repo_path.resolve()
     ts_exts = {".ts", ".tsx", ".js", ".jsx"}
     results: list[Relationship] = []
     ts_files = [
