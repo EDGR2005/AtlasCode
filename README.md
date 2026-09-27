@@ -226,7 +226,8 @@ Full interactive docs: http://localhost:8000/docs
 
 ## Roadmap
 
-**Phase 2 (planned)**
+**Phase 2 (Current)**
+- **Guided Contribution Mode**: Act as an interactive mentor to guide developers through fixing issues, telling them where to write code and tests, running tests on demand, and preparing a Pull Request summary.
 - PostgreSQL storage backend (drop-in swap via `ProjectStorage` interface)
 - Private repository support via GitHub App OAuth
 - AST-based relationship detection for Python and TypeScript

@@ -16,8 +16,9 @@ import DependenciesPanel from '../components/DependenciesPanel';
 import RepositoryPanel from '../components/RepositoryPanel';
 import ArchitectureGraph from '../components/ArchitectureGraph';
 import DatabasePanel from '../components/DatabasePanel';
+import ContributePage from './ContributePage';
 
-type Tab = 'overview' | 'technologies' | 'dependencies' | 'architecture' | 'repository' | 'database';
+type Tab = 'overview' | 'technologies' | 'dependencies' | 'architecture' | 'repository' | 'database' | 'contribute';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -26,6 +27,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'architecture', label: 'Architecture' },
   { id: 'repository', label: 'Repository' },
   { id: 'database', label: 'Database' },
+  { id: 'contribute', label: '✦ Contribute' },
 ];
 
 export default function DashboardPage() {
@@ -193,6 +195,9 @@ export default function DashboardPage() {
               dbSchema === null
                 ? <div className="panel-loading"><span className="spinner" /> Loading…</div>
                 : <DatabasePanel schema={dbSchema} />
+            )}
+            {activeTab === 'contribute' && (
+              <ContributePage projectId={projectId!} />
             )}
           </main>
         </>

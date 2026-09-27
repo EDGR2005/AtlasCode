@@ -9,6 +9,7 @@ services:
       - ./projects:/app/projects
     environment:
       - PROJECTS_DIR=/app/projects
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
