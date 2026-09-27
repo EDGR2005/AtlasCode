@@ -100,3 +100,90 @@ class ProjectKnowledge(BaseModel):
     components: list[Component] = Field(default_factory=list)
     relationships: list[Relationship] = Field(default_factory=list)
     database: DatabaseSchema = Field(default_factory=DatabaseSchema)
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 — Contribution Agent models
+# ---------------------------------------------------------------------------
+
+
+class IssueAnalysis(BaseModel):
+    """Structured analysis of a single GitHub issue."""
+    issue_number: int
+    title: str
+    type: str = "unknown"        # "bug" | "docs" | "feature" | "refactor" | "unknown"
+    scope: str = "unknown"       # "small" | "medium" | "large" | "unknown"
+    reasons: list[str] = Field(default_factory=list)   # positive approachability signals
+    concerns: list[str] = Field(default_factory=list)  # risk / complexity signals
+    labels: list[str] = Field(default_factory=list)
+    url: str = ""
+
+
+class RelevantFile(BaseModel):
+    """A repository file judged relevant to an issue."""
+    path: str
+    reason: str
+    inferred: bool = True
+
+
+class ContributionStep(BaseModel):
+    index: int
+    description: str   # plain-language sentence
+
+
+class ContributionPlan(BaseModel):
+    issue_number: int
+    branch_name: str
+    relevant_files: list[RelevantFile] = Field(default_factory=list)
+    steps: list[ContributionStep] = Field(default_factory=list)
+    approved: bool = False
+    repo_path: str = ""
+    test_command: str = ""
+    test_file_hint: str = ""
+
+
+class SuiteResult(BaseModel):
+    passed: int = 0
+    failed: int = 0
+    errors: int = 0
+    output: str = ""           # raw stdout/stderr, truncated to 4000 chars
+    duration_seconds: float = 0.0
+    timed_out: bool = False
+
+
+# Backward-compatible aliases
+RunResult = SuiteResult
+TestResult = SuiteResult
+
+
+class VerificationAttempt(BaseModel):
+    attempt: int
+    result: TestResult
+
+
+class SessionMetrics(BaseModel):
+    project_id: str
+    issue_number: int
+    branch_name: str
+    state: str = "IDLE"
+    files_analyzed: int = 0
+    files_modified: int = 0
+    changed_files: list[str] = Field(default_factory=list)
+    tests_run: int = 0
+    tests_passed: int = 0
+    tests_failed: int = 0
+    fix_attempts: int = 0
+    test_runs: int = 0
+    attempts: list[VerificationAttempt] = Field(default_factory=list)
+    started_at: datetime
+    finished_at: datetime | None = None
+
+
+class ContributionSummary(BaseModel):
+    issue_number: int
+    issue_title: str
+    branch_name: str
+    commit_sha: str | None = None
+    diff_stat: str = ""
+    pr_draft: str = ""
+    metrics: SessionMetrics | None = None

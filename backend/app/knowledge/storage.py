@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.knowledge.models import ProjectMetadata, ProjectKnowledge
+from app.knowledge.models import ProjectMetadata, ProjectKnowledge, SessionMetrics
 
 
 def _slug(repo_url: str) -> str:
@@ -110,6 +110,20 @@ class ProjectStorage:
     def get_clone_path(self, project_id: str) -> Path:
         """Return path where the repository should be cloned."""
         return self.base_path / project_id / "repository"
+
+    # --- session (Phase 2) ---
+
+    def save_session(self, project_id: str, session: SessionMetrics) -> None:
+        """Write session.json for the project."""
+        path = self.get_project_dir(project_id) / "session.json"
+        path.write_text(session.model_dump_json())
+
+    def load_session(self, project_id: str) -> SessionMetrics | None:
+        """Load session.json, return None if not found."""
+        path = self.get_project_dir(project_id) / "session.json"
+        if not path.exists():
+            return None
+        return SessionMetrics.model_validate_json(path.read_text())
 
     # --- internal helpers ---
 
