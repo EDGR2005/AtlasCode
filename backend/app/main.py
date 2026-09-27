@@ -6,12 +6,19 @@ from app.api.contribution import router as contribution_router
 
 app = FastAPI(title="CodeAtlas API")
 
+# Lista de orígenes permitidos
+origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://atlas-code-neon.vercel.app",  # Tu dominio exacto de Vercel
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "https://atlascode-ffv5.onrender.com"],
+    allow_origins=origins,  # O usa ["*"] para permitir cualquier origen durante las pruebas
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],    # Permite POST, GET, OPTIONS, etc.
+    allow_headers=["*"],    # Permite Content-Type, Authorization, etc.
 )
 
 app.include_router(projects_router)
